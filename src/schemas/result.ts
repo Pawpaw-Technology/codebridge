@@ -6,6 +6,7 @@ const ErrorSchema = z.object({
   message: z.string(),
   retryable: z.boolean(),
   suggestion: z.string().optional(),
+  detail: z.string().optional(),
 });
 
 const TokenUsageSchema = z
