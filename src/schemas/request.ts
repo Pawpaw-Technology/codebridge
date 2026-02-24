@@ -60,6 +60,17 @@ export const RequestSchema = z
       })
       .default({ timeout_ms: 1800000, allow_network: true }),
     allowed_roots: z.array(z.string()).optional(),
+    images: z
+      .array(
+        z
+          .string()
+          .min(1)
+          .refine((p) => !p.includes("\x00"), {
+            message: "Image path must not contain null bytes",
+          }),
+      )
+      .optional()
+      .default([]),
   })
   .refine((d) => d.mode !== "resume" || d.session_id !== null, {
     message: "resume requires session_id",

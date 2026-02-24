@@ -17,6 +17,15 @@ export function submitCommand(): Command {
     .option("--wait", "Block until task completes", false)
     .option("--timeout <ms>", "Timeout in milliseconds", "1800000")
     .option(
+      "--image <path>",
+      "Attach image file (repeatable)",
+      (val: string, prev: string[]) => {
+        prev.push(path.resolve(val));
+        return prev;
+      },
+      [] as string[],
+    )
+    .option(
       "--runs-dir <path>",
       "Runs directory",
       path.join(process.cwd(), ".runs"),
@@ -32,6 +41,7 @@ export function submitCommand(): Command {
         mode: "new",
         constraints: { timeout_ms: timeoutMs, allow_network: true },
         ...(opts.model ? { model: opts.model } : {}),
+        ...(opts.image?.length ? { images: opts.image } : {}),
       };
       const validation = validateRequest(requestInput);
       if (!validation.success) {

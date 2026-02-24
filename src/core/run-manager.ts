@@ -10,7 +10,10 @@ export class RunManager {
   }
 
   async createRun(
-    request: Omit<TaskRequest, "constraints" | "session_id" | "allowed_roots"> &
+    request: Omit<
+      TaskRequest,
+      "constraints" | "session_id" | "allowed_roots" | "images"
+    > &
       Partial<TaskRequest>,
   ): Promise<string> {
     const runId = `run-${nanoid(12)}`;

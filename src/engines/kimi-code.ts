@@ -83,7 +83,7 @@ export class KimiCodeEngine extends BaseEngine implements Engine {
     if (task.model) {
       args.push("-m", task.model);
     }
-    args.push("-p", task.message);
+    args.push("-p", this.injectImagePaths(task.message, task.images));
     return args;
   }
 

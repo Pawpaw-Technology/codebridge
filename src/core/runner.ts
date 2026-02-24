@@ -122,6 +122,19 @@ export class TaskRunner {
         return;
       }
 
+      // Validate image paths
+      if (request.images && request.images.length > 0) {
+        const imgError = this.validateImages(
+          request.images,
+          resolvedWorkspace,
+          request.allowed_roots,
+        );
+        if (imgError) {
+          await this.fail(runId, startTime, imgError);
+          return;
+        }
+      }
+
       // Validate resume mode has a session_id — null session_id with resume
       // would silently fall through to engine.start() and start a new task.
       if (request.mode === "resume" && !request.session_id) {
@@ -281,6 +294,85 @@ export class TaskRunner {
       files_changed: null,
       error: mergedError,
     });
+  }
+  private validateImages(
+    images: string[],
+    resolvedWorkspace: string,
+    allowedRoots?: string[],
+  ): ReturnType<typeof makeError> | null {
+    const SUPPORTED_EXTS = new Set([
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".gif",
+      ".webp",
+      ".svg",
+    ]);
+
+    for (const imgPath of images) {
+      // Reject paths with newlines or brackets that could pollute prompt text
+      if (/[\n\r\[\]]/.test(imgPath)) {
+        return makeError(
+          "REQUEST_INVALID",
+          `Image path contains disallowed characters: ${imgPath.replace(/[\n\r]/g, "\\n")}`,
+        );
+      }
+
+      // Resolve to real path (follows symlinks, verifies existence)
+      let resolved: string;
+      try {
+        resolved = fs.realpathSync(imgPath);
+      } catch {
+        return makeError("REQUEST_INVALID", `Image does not exist: ${imgPath}`);
+      }
+
+      // Must be a file, not a directory
+      if (!fs.statSync(resolved).isFile()) {
+        return makeError(
+          "REQUEST_INVALID",
+          `Image path is not a file: ${imgPath}`,
+        );
+      }
+
+      // Check supported format
+      const ext = path.extname(resolved).toLowerCase();
+      if (!SUPPORTED_EXTS.has(ext)) {
+        return makeError(
+          "REQUEST_INVALID",
+          `Unsupported image format '${ext}': ${imgPath}`,
+        );
+      }
+
+      // Security: image must be within workspace or allowed_roots
+      const roots = [resolvedWorkspace];
+      if (allowedRoots) {
+        for (const r of allowedRoots) {
+          try {
+            roots.push(fs.realpathSync(r));
+          } catch {
+            roots.push(path.resolve(r));
+          }
+        }
+      }
+      // Defense-in-depth: reject filesystem root in allowed_roots for images
+      if (roots.some((r) => r === path.sep)) {
+        return makeError(
+          "REQUEST_INVALID",
+          "Filesystem root is not permitted as an allowed_root for images",
+        );
+      }
+      const isAllowed = roots.some(
+        (root) => resolved === root || resolved.startsWith(root + path.sep),
+      );
+      if (!isAllowed) {
+        return makeError(
+          "REQUEST_INVALID",
+          `Image is outside allowed roots: ${imgPath}`,
+        );
+      }
+    }
+
+    return null;
   }
 }
 
