@@ -59,7 +59,12 @@ export class OpenCodeEngine extends BaseEngine implements Engine {
     if (task.model) {
       args.push("-m", task.model);
     }
-    args.push(this.injectImagePaths(task.message, task.images));
+    if (task.images && task.images.length > 0) {
+      for (const img of task.images) {
+        args.push("-f", img);
+      }
+    }
+    args.push("--", task.message);
     return args;
   }
 
