@@ -60,6 +60,7 @@ export const RequestSchema = z
       })
       .default({ timeout_ms: 1800000, allow_network: true }),
     allowed_roots: z.array(z.string()).optional(),
+    images: z.array(z.string().min(1)).optional().default([]),
   })
   .refine((d) => d.mode !== "resume" || d.session_id !== null, {
     message: "resume requires session_id",

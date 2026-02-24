@@ -64,6 +64,9 @@ export class ClaudeCodeEngine extends BaseEngine implements Engine {
     if (task.model) {
       args.push("--model", task.model);
     }
+    for (const img of task.images ?? []) {
+      args.push("--image", img);
+    }
     args.push("-p", task.message);
     return args;
   }
@@ -132,9 +135,7 @@ export class ClaudeCodeEngine extends BaseEngine implements Engine {
     return match?.[1] ?? null;
   }
 
-  private extractTokenUsage(
-    parsed: Record<string, unknown> | null,
-  ): {
+  private extractTokenUsage(parsed: Record<string, unknown> | null): {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;

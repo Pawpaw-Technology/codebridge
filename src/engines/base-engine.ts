@@ -184,6 +184,12 @@ export abstract class BaseEngine {
     });
   }
 
+  protected injectImagePaths(message: string, images?: string[]): string {
+    if (!images || images.length === 0) return message;
+    const block = images.map((p) => `[Attached image: ${p}]`).join("\n");
+    return `${message}\n\n${block}`;
+  }
+
   protected abstract parseOutput(
     stdout: string,
     stderr: string,
