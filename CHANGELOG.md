@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.5](https://github.com/64andrewwalker/codebridge/compare/codebridge-v0.1.4...codebridge-v0.1.5) (2026-02-24)
+
+
+### Features
+
+* add --image support for attaching images to tasks ([#40](https://github.com/64andrewwalker/codebridge/issues/40)) ([6405b28](https://github.com/64andrewwalker/codebridge/commit/6405b28cf039839a0a6a80f7013d26ca1d52f5b6))
+
+
+### Bug Fixes
+
+* add stderr capture, partial output, and process group kill for ENGINE_TIMEOUT ([#37](https://github.com/64andrewwalker/codebridge/issues/37)) ([cc80f88](https://github.com/64andrewwalker/codebridge/commit/cc80f88e2f24c7f13b22773b73401e0129beaa65))
+* ENGINE_TIMEOUT zero observability ([#37](https://github.com/64andrewwalker/codebridge/issues/37)) ([cf467e2](https://github.com/64andrewwalker/codebridge/commit/cf467e2eb9c92155b462ef678dfd31dde3c4a053))
+
 ## [0.1.4](https://github.com/64andrewwalker/codebridge/compare/codebridge-v0.1.3...codebridge-v0.1.4) (2026-02-21)
 
 
