@@ -174,7 +174,9 @@ export class TaskRunner {
       const SUMMARY_LIMIT = 4000;
       const output = engineResponse.output;
       const summaryTruncated = output.length > SUMMARY_LIMIT;
-      const summary = summaryTruncated ? output.slice(0, SUMMARY_LIMIT) : output;
+      const summary = summaryTruncated
+        ? output.slice(0, SUMMARY_LIMIT)
+        : output;
 
       try {
         this.runManager.writeOutputFile(runId, output);
@@ -224,9 +226,15 @@ export class TaskRunner {
   private async fail(
     runId: string,
     startTime: number,
-    error: { code: string; message: string; retryable: boolean },
+    error: {
+      code: string;
+      message: string;
+      retryable: boolean;
+      detail?: string;
+    },
     engineResponse?: {
       output?: string;
+      stderr?: string;
       sessionId?: string | null;
       tokenUsage?: unknown;
     },
@@ -243,18 +251,35 @@ export class TaskRunner {
       /* best effort */
     }
 
+    // Write partial output.txt if the engine produced any output (best-effort)
+    let outputPath: string | null = null;
+    if (engineResponse?.output) {
+      try {
+        this.runManager.writeOutputFile(runId, engineResponse.output);
+        outputPath = path.join(this.runManager.getRunDir(runId), "output.txt");
+      } catch {
+        /* best effort — don't let output write failure block result.json */
+      }
+    }
+
+    // Merge stderr tail into error.detail for diagnostic context
+    const stderrTail = engineResponse?.stderr?.slice(-2000);
+    const mergedError = stderrTail
+      ? { ...error, detail: error.detail || stderrTail }
+      : error;
+
     await this.runManager.writeResult(runId, {
       run_id: runId,
       status: "failed",
       summary: error.message,
       summary_truncated: false,
-      output_path: null,
+      output_path: outputPath,
       session_id: engineResponse?.sessionId ?? null,
       artifacts: [],
       duration_ms: Date.now() - startTime,
       token_usage: null,
       files_changed: null,
-      error,
+      error: mergedError,
     });
   }
 }

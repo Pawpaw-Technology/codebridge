@@ -481,6 +481,109 @@ describe("TaskRunner", () => {
     expect(fs.existsSync(outputPath)).toBe(false);
   });
 
+  it("writes output.txt on failure when engine has partial output", async () => {
+    // Engine that produces output but exits non-zero
+    const engine = new ClaudeCodeEngine({
+      command: "bash",
+      defaultArgs: ["-c", "echo 'partial work done'; exit 1"],
+    });
+    const runner = new TaskRunner(runManager, sessionManager, engine);
+    const runId = await runManager.createRun({
+      task_id: "task-partial-out",
+      intent: "coding",
+      workspace_path: workspaceDir,
+      message: "Partial output on failure",
+      engine: "claude-code",
+      mode: "new",
+    });
+
+    await runner.processRun(runId);
+
+    const resultPath = path.join(runsDir, runId, "result.json");
+    const result = JSON.parse(fs.readFileSync(resultPath, "utf-8"));
+    expect(result.status).toBe("failed");
+    // output.txt should exist because engine produced non-empty output
+    const outputPath = path.join(runsDir, runId, "output.txt");
+    expect(fs.existsSync(outputPath)).toBe(true);
+    expect(fs.readFileSync(outputPath, "utf-8")).toContain("partial work done");
+    expect(path.isAbsolute(result.output_path)).toBe(true);
+  });
+
+  it("does NOT write output.txt when engine output is empty on failure", async () => {
+    const engine = new ClaudeCodeEngine({ command: "false" });
+    const runner = new TaskRunner(runManager, sessionManager, engine);
+    const runId = await runManager.createRun({
+      task_id: "task-empty-fail",
+      intent: "coding",
+      workspace_path: workspaceDir,
+      message: "Empty output failure",
+      engine: "claude-code",
+      mode: "new",
+    });
+
+    await runner.processRun(runId);
+
+    const resultPath = path.join(runsDir, runId, "result.json");
+    const result = JSON.parse(fs.readFileSync(resultPath, "utf-8"));
+    expect(result.status).toBe("failed");
+    expect(result.output_path).toBeNull();
+    const outputPath = path.join(runsDir, runId, "output.txt");
+    expect(fs.existsSync(outputPath)).toBe(false);
+  });
+
+  it("result.json includes stderr in error.detail on failure", async () => {
+    const engine = new ClaudeCodeEngine({
+      command: "bash",
+      defaultArgs: ["-c", "echo 'connection refused' >&2; exit 1"],
+    });
+    const runner = new TaskRunner(runManager, sessionManager, engine);
+    const runId = await runManager.createRun({
+      task_id: "task-stderr-detail",
+      intent: "coding",
+      workspace_path: workspaceDir,
+      message: "Stderr in detail",
+      engine: "claude-code",
+      mode: "new",
+    });
+
+    await runner.processRun(runId);
+
+    const resultPath = path.join(runsDir, runId, "result.json");
+    const result = JSON.parse(fs.readFileSync(resultPath, "utf-8"));
+    expect(result.status).toBe("failed");
+    expect(result.error.detail).toContain("connection refused");
+  });
+
+  it("writes output.txt on ENGINE_TIMEOUT with partial stdout", async () => {
+    const engine = new ClaudeCodeEngine({
+      command: "bash",
+      defaultArgs: ["-c", "echo 'pre-timeout output'; exec sleep 30"],
+    });
+    const runner = new TaskRunner(runManager, sessionManager, engine);
+    const runId = await runManager.createRun({
+      task_id: "task-timeout-out",
+      intent: "coding",
+      workspace_path: workspaceDir,
+      message: "Timeout with output",
+      engine: "claude-code",
+      mode: "new",
+      constraints: { timeout_ms: 500, allow_network: true },
+    });
+
+    await runner.processRun(runId);
+
+    const resultPath = path.join(runsDir, runId, "result.json");
+    const result = JSON.parse(fs.readFileSync(resultPath, "utf-8"));
+    expect(result.status).toBe("failed");
+    expect(result.error.code).toBe("ENGINE_TIMEOUT");
+    const outputPath = path.join(runsDir, runId, "output.txt");
+    expect(fs.existsSync(outputPath)).toBe(true);
+    expect(fs.readFileSync(outputPath, "utf-8")).toContain(
+      "pre-timeout output",
+    );
+    expect(path.isAbsolute(result.output_path)).toBe(true);
+  }, 15000);
+
   it("still writes result.json when writeOutputFile throws", async () => {
     const engine = new ClaudeCodeEngine({
       command: "echo",

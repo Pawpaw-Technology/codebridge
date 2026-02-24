@@ -53,12 +53,13 @@ export const ERROR_CODES = {
 
 export type ErrorCode = keyof typeof ERROR_CODES;
 
-export function makeError(code: ErrorCode, detail?: string) {
+export function makeError(code: ErrorCode, message?: string, detail?: string) {
   const info = ERROR_CODES[code];
   return {
     code,
-    message: detail || info.message,
+    message: message || info.message,
     retryable: info.retryable,
     suggestion: info.suggestion,
+    ...(detail ? { detail } : {}),
   };
 }

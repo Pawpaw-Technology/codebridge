@@ -320,4 +320,41 @@ describe("ResultSchema", () => {
     const result = validateResult(input);
     expect(result.success).toBe(true);
   });
+
+  it("accepts error with detail field", () => {
+    const input = {
+      ...validSuccess,
+      status: "failed",
+      error: {
+        code: "ENGINE_TIMEOUT",
+        message: "Timed out",
+        retryable: true,
+        detail: "connection refused to vertex-ai.googleapis.com",
+      },
+    };
+    const result = validateResult(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.error!.detail).toBe(
+        "connection refused to vertex-ai.googleapis.com",
+      );
+    }
+  });
+
+  it("accepts error without detail (backward compat)", () => {
+    const input = {
+      ...validSuccess,
+      status: "failed",
+      error: {
+        code: "ENGINE_TIMEOUT",
+        message: "Timed out",
+        retryable: true,
+      },
+    };
+    const result = validateResult(input);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.error!.detail).toBeUndefined();
+    }
+  });
 });

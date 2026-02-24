@@ -67,4 +67,20 @@ describe("makeError", () => {
     const err = makeError("ENGINE_TIMEOUT", "Custom message");
     expect(err.message).toBe("Custom message");
   });
+
+  it("includes detail when 3rd arg provided", () => {
+    const err = makeError("ENGINE_TIMEOUT", "Timed out", "stderr context here");
+    expect(err.detail).toBe("stderr context here");
+    expect(err.message).toBe("Timed out");
+  });
+
+  it("omits detail when 3rd arg absent", () => {
+    const err = makeError("ENGINE_TIMEOUT");
+    expect("detail" in err).toBe(false);
+  });
+
+  it("omits detail when 3rd arg is empty string", () => {
+    const err = makeError("ENGINE_TIMEOUT", "Timed out", "");
+    expect("detail" in err).toBe(false);
+  });
 });
