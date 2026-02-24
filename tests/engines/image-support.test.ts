@@ -56,7 +56,7 @@ describe("Engine image support", () => {
   });
 
   describe("OpenCodeEngine", () => {
-    it("injects image paths into message text", async () => {
+    it("passes -f flags for each image", async () => {
       const engine = new OpenCodeEngine({
         command: "echo",
         defaultArgs: [],
@@ -66,17 +66,19 @@ describe("Engine image support", () => {
         images: ["/tmp/screenshot.png"],
       });
       const result = await engine.start(task);
-      expect(result.output).toContain("[Attached image: /tmp/screenshot.png]");
+      expect(result.output).toContain("-f");
+      expect(result.output).toContain("/tmp/screenshot.png");
     });
 
-    it("does not modify message when images is empty", async () => {
+    it("does not include -f when images is empty", async () => {
       const engine = new OpenCodeEngine({
         command: "echo",
         defaultArgs: [],
       });
       const task = makeRequest({ engine: "opencode", images: [] });
       const result = await engine.start(task);
-      expect(result.output).not.toContain("[Attached image:");
+      // Check for "-f " (with trailing space) to avoid matching "--format"
+      expect(result.output).not.toContain("-f ");
     });
   });
 

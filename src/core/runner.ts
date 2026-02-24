@@ -310,6 +310,14 @@ export class TaskRunner {
     ]);
 
     for (const imgPath of images) {
+      // Reject paths with newlines or brackets that could pollute prompt text
+      if (/[\n\r\[\]]/.test(imgPath)) {
+        return makeError(
+          "REQUEST_INVALID",
+          `Image path contains disallowed characters: ${imgPath.replace(/[\n\r]/g, "\\n")}`,
+        );
+      }
+
       // Resolve to real path (follows symlinks, verifies existence)
       let resolved: string;
       try {
@@ -345,6 +353,13 @@ export class TaskRunner {
             roots.push(path.resolve(r));
           }
         }
+      }
+      // Defense-in-depth: reject filesystem root in allowed_roots for images
+      if (roots.some((r) => r === path.sep)) {
+        return makeError(
+          "REQUEST_INVALID",
+          "Filesystem root is not permitted as an allowed_root for images",
+        );
       }
       const isAllowed = roots.some(
         (root) => resolved === root || resolved.startsWith(root + path.sep),

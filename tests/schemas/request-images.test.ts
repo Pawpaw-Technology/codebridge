@@ -11,15 +11,7 @@ describe("RequestSchema – images field", () => {
     mode: "new",
   };
 
-  it("accepts a request without images (backward compat)", () => {
-    const result = validateRequest(validBase);
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.images).toEqual([]);
-    }
-  });
-
-  it("defaults images to empty array when omitted", () => {
+  it("accepts a request without images and defaults to empty array", () => {
     const result = validateRequest(validBase);
     expect(result.success).toBe(true);
     if (result.success) {
@@ -47,6 +39,18 @@ describe("RequestSchema – images field", () => {
       images: [""],
     });
     expect(result.success).toBe(false);
+  });
+
+  it("rejects null byte in image path", () => {
+    const result = validateRequest({
+      ...validBase,
+      images: ["/home/user/project/img\x00.png"],
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i: any) => i.message);
+      expect(messages).toContain("Image path must not contain null bytes");
+    }
   });
 
   it("accepts an explicit empty images array", () => {

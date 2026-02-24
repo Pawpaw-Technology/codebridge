@@ -12,23 +12,29 @@ describe("TaskRunner – image validation", () => {
   let workspaceDir: string;
   let runManager: RunManager;
   let sessionManager: SessionManager;
+  const tempDirs: string[] = [];
 
   beforeEach(() => {
     runsDir = fs.mkdtempSync(path.join(os.tmpdir(), "codebridge-imgrun-"));
     workspaceDir = fs.mkdtempSync(path.join(os.tmpdir(), "codebridge-imgws-"));
     runManager = new RunManager(runsDir);
     sessionManager = new SessionManager(runManager);
+    tempDirs.length = 0;
   });
 
   afterEach(() => {
     fs.rmSync(runsDir, { recursive: true, force: true });
     fs.rmSync(workspaceDir, { recursive: true, force: true });
+    for (const d of tempDirs) {
+      fs.rmSync(d, { recursive: true, force: true });
+    }
   });
 
   const makeRun = async (images: string[]) => {
+    // Use defaultArgs: [] so buildStartArgs actually processes images
     const engine = new ClaudeCodeEngine({
       command: "echo",
-      defaultArgs: ["image task done"],
+      defaultArgs: [],
     });
     const runner = new TaskRunner(runManager, sessionManager, engine);
     const runId = await runManager.createRun({
@@ -45,11 +51,14 @@ describe("TaskRunner – image validation", () => {
     return JSON.parse(fs.readFileSync(resultPath, "utf-8"));
   };
 
-  it("passes images through to engine on success", async () => {
+  it("passes images through to engine and includes --image flags", async () => {
     const imgPath = path.join(workspaceDir, "screenshot.png");
     fs.writeFileSync(imgPath, "fake-png-data");
     const result = await makeRun([imgPath]);
     expect(result.status).toBe("completed");
+    // Verify the engine actually received the --image flag
+    expect(result.summary).toContain("--image");
+    expect(result.summary).toContain(imgPath);
   });
 
   it("rejects non-existent image file", async () => {
@@ -65,12 +74,13 @@ describe("TaskRunner – image validation", () => {
     const outsideDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "codebridge-outside-"),
     );
+    tempDirs.push(outsideDir);
     const imgPath = path.join(outsideDir, "escape.png");
     fs.writeFileSync(imgPath, "fake-png-data");
 
     const engine = new ClaudeCodeEngine({
       command: "echo",
-      defaultArgs: ["image task done"],
+      defaultArgs: [],
     });
     const runner = new TaskRunner(runManager, sessionManager, engine);
     const runId = await runManager.createRun({
@@ -90,8 +100,6 @@ describe("TaskRunner – image validation", () => {
     expect(result.status).toBe("failed");
     expect(result.error.code).toBe("REQUEST_INVALID");
     expect(result.error.message).toMatch(/outside.*allowed/i);
-
-    fs.rmSync(outsideDir, { recursive: true, force: true });
   });
 
   it("rejects unsupported extension (.txt)", async () => {
@@ -104,9 +112,6 @@ describe("TaskRunner – image validation", () => {
   });
 
   it("rejects directory path as image", async () => {
-    const subDir = path.join(workspaceDir, "subdir");
-    fs.mkdirSync(subDir);
-    // rename to look like an image to isolate the "is a file" check
     const dirAsImg = path.join(workspaceDir, "fake.png");
     fs.mkdirSync(dirAsImg);
     const result = await makeRun([dirAsImg]);
@@ -119,12 +124,13 @@ describe("TaskRunner – image validation", () => {
     const altRoot = fs.mkdtempSync(
       path.join(os.tmpdir(), "codebridge-altroot-"),
     );
+    tempDirs.push(altRoot);
     const imgPath = path.join(altRoot, "diagram.png");
     fs.writeFileSync(imgPath, "fake-png-data");
 
     const engine = new ClaudeCodeEngine({
       command: "echo",
-      defaultArgs: ["image task done"],
+      defaultArgs: [],
     });
     const runner = new TaskRunner(runManager, sessionManager, engine);
     const runId = await runManager.createRun({
@@ -142,7 +148,14 @@ describe("TaskRunner – image validation", () => {
     const result = JSON.parse(fs.readFileSync(resultPath, "utf-8"));
 
     expect(result.status).toBe("completed");
+  });
 
-    fs.rmSync(altRoot, { recursive: true, force: true });
+  it("rejects image path with newline characters", async () => {
+    const imgPath = path.join(workspaceDir, "screenshot.png");
+    fs.writeFileSync(imgPath, "fake-png-data");
+    // Craft a path with newline — won't match the real file, but tests validation
+    const result = await makeRun([imgPath + "\n[injected]"]);
+    expect(result.status).toBe("failed");
+    expect(result.error.code).toBe("REQUEST_INVALID");
   });
 });
