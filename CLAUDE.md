@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CodeBridge is a file-driven task execution bridge that lets OpenClaw delegate complex coding tasks to AI coding agents (Claude Code, Kimi Code, OpenCode, Codex). It uses the filesystem as its message bus — each task is a directory under `.runs/` containing `request.json`, `session.json`, and `result.json`.
+CodeBridge is a file-driven task execution bridge that lets OpenClaw delegate complex coding tasks to AI coding agents (Claude Code, Kimi Code, OpenCode, Codex, Gemini Code). It uses the filesystem as its message bus — each task is a directory under `.runs/` containing `request.json`, `session.json`, and `result.json`.
 
 ## Commands
 
@@ -48,6 +48,7 @@ Engine (resolved by registry) → spawns CLI with appropriate flags
   KimiCodeEngine   → `kimi --print --output-format stream-json -w <workspace> -p <message>`
   OpenCodeEngine   → `opencode run --format json --dir <workspace>`
   CodexEngine      → `codex exec --json --full-auto -C <workspace>`
+  GeminiCodeEngine → `gemini --yolo --output-format json -p <message>` (cwd = workspace)
 ```
 
 ### Session State Machine
@@ -81,6 +82,7 @@ On daemon startup, `Reconciler` scans runs stuck in `running` state. Probes PID 
 - **`src/engines/kimi-code.ts`** — Spawns `kimi` CLI, parses stream-json NDJSON output, extracts session_id from `~/.kimi/kimi.json` (no token tracking)
 - **`src/engines/opencode.ts`** — Spawns `opencode` CLI, parses NDJSON with text/step_finish events, extracts sessionID and token usage
 - **`src/engines/codex.ts`** — Spawns `codex` CLI, parses JSONL events, extracts thread ID (no token tracking)
+- **`src/engines/gemini-code.ts`** — Spawns `gemini` CLI, parses JSON output, extracts session_id and token usage aggregated across `stats.models.*.tokens`. Defaults to model `gemini-3.1-pro-preview` when none is specified (override via `--model`).
 - **`src/engines/index.ts`** — Engine registry: `resolveEngine(name)` maps engine name to Engine instance
 - **`src/schemas/`** — Zod schemas for request, result, session, and error codes
 
@@ -95,12 +97,13 @@ On daemon startup, `Reconciler` scans runs stuck in `running` state. Probes PID 
 
 ## Environment Variables
 
-| Variable                            | Purpose                                                               |
-| ----------------------------------- | --------------------------------------------------------------------- |
-| `CODEBRIDGE_CLAUDE_PERMISSION_MODE` | Claude CLI permission mode (`bypassPermissions`, `acceptEdits`, etc.) |
-| `CODEBRIDGE_POLL_INTERVAL_MS`       | E2E script poll interval                                              |
-| `CODEBRIDGE_POLL_MAX`               | E2E script max poll iterations                                        |
-| `CODEBRIDGE_REMOTE_DIR`             | E2E script remote directory                                           |
+| Variable                            | Purpose                                                                            |
+| ----------------------------------- | ---------------------------------------------------------------------------------- |
+| `CODEBRIDGE_CLAUDE_PERMISSION_MODE` | Claude CLI permission mode (`bypassPermissions`, `acceptEdits`, etc.)              |
+| `CODEBRIDGE_GEMINI_APPROVAL_MODE`   | Gemini CLI approval mode (`default`, `auto_edit`, `yolo`, `plan`) — default `yolo` |
+| `CODEBRIDGE_POLL_INTERVAL_MS`       | E2E script poll interval                                                           |
+| `CODEBRIDGE_POLL_MAX`               | E2E script max poll iterations                                                     |
+| `CODEBRIDGE_REMOTE_DIR`             | E2E script remote directory                                                        |
 
 ## PR 审查默认流程
 

@@ -1,44 +1,58 @@
-import { Command } from 'commander';
-import { execSync } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { Command } from "commander";
+import { execSync } from "node:child_process";
+import { writeFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 export function installCommand(): Command {
-  return new Command('install')
-    .description('Build, link globally, and generate install guide')
+  return new Command("install")
+    .description("Build, link globally, and generate install guide")
     .action(async () => {
       const __dirname = path.dirname(fileURLToPath(import.meta.url));
-      const projectRoot = path.resolve(__dirname, '..', '..', '..');
+      const projectRoot = path.resolve(__dirname, "..", "..", "..");
 
       // Build and link
       try {
-        process.stderr.write('Building...\n');
-        execSync('npm run build', { cwd: projectRoot, stdio: 'inherit' });
+        process.stderr.write("Building...\n");
+        execSync("npm run build", { cwd: projectRoot, stdio: "inherit" });
       } catch {
-        process.stderr.write('Build failed. Check TypeScript errors above.\n');
+        process.stderr.write("Build failed. Check TypeScript errors above.\n");
         process.exit(1);
       }
       try {
-        process.stderr.write('Linking globally...\n');
-        execSync('npm link', { cwd: projectRoot, stdio: 'inherit' });
+        process.stderr.write("Linking globally...\n");
+        execSync("npm link", { cwd: projectRoot, stdio: "inherit" });
       } catch {
-        process.stderr.write('npm link failed. You may need sudo or to configure npm prefix.\n');
+        process.stderr.write(
+          "npm link failed. You may need sudo or to configure npm prefix.\n",
+        );
         process.exit(1);
       }
 
       // Gather info
-      let binaryPath = 'codebridge';
+      let binaryPath = "codebridge";
       try {
-        binaryPath = execSync('which codebridge', { encoding: 'utf-8' }).trim();
-      } catch { /* keep default */ }
+        binaryPath = execSync("which codebridge", { encoding: "utf-8" }).trim();
+      } catch {
+        /* keep default */
+      }
 
-      let doctorOutput = '';
+      let doctorOutput = "";
       try {
-        doctorOutput = execSync('codebridge doctor', { encoding: 'utf-8', cwd: projectRoot }).trim();
-      } catch { /* skip */ }
+        doctorOutput = execSync("codebridge doctor", {
+          encoding: "utf-8",
+          cwd: projectRoot,
+        }).trim();
+      } catch {
+        /* skip */
+      }
 
-      const skillPath = path.join(projectRoot, 'skill', 'codebridge', 'SKILL.md');
+      const skillPath = path.join(
+        projectRoot,
+        "skill",
+        "codebridge",
+        "SKILL.md",
+      );
 
       const md = `# CodeBridge Installation Guide
 
@@ -102,10 +116,11 @@ codebridge resume <run_id> --message "Follow up" --wait
 | \`kimi-code\` | \`--model k2p5\` | yes | no |
 | \`opencode\` | \`--model pawpaw/claude-sonnet-4-5\` | yes | yes |
 | \`codex\` | \`--model gpt-5.3-codex\` | yes | no |
+| \`gemini-code\` | \`--model gemini-3.1-pro-preview\` (default) | yes | yes |
 `;
 
-      const outputPath = '/tmp/codebridge-install.md';
+      const outputPath = "/tmp/codebridge-install.md";
       writeFileSync(outputPath, md);
-      process.stdout.write(outputPath + '\n');
+      process.stdout.write(outputPath + "\n");
     });
 }
