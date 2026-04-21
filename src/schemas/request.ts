@@ -48,7 +48,7 @@ export const RequestSchema = z
         message: "message must not be blank",
       }),
     engine: z
-      .enum(["claude-code", "kimi-code", "opencode", "codex"])
+      .enum(["claude-code", "kimi-code", "opencode", "codex", "gemini-code"])
       .default("claude-code"),
     model: z.string().optional(),
     mode: z.enum(["new", "resume"]).default("new"),

@@ -1,19 +1,22 @@
-import type { Engine } from '../core/engine.js';
-import { ClaudeCodeEngine } from './claude-code.js';
-import { KimiCodeEngine } from './kimi-code.js';
-import { OpenCodeEngine } from './opencode.js';
-import { CodexEngine } from './codex.js';
+import type { Engine } from "../core/engine.js";
+import { ClaudeCodeEngine } from "./claude-code.js";
+import { KimiCodeEngine } from "./kimi-code.js";
+import { OpenCodeEngine } from "./opencode.js";
+import { CodexEngine } from "./codex.js";
+import { GeminiCodeEngine } from "./gemini-code.js";
 
 export function resolveEngine(name: string): Engine {
   switch (name) {
-    case 'claude-code':
+    case "claude-code":
       return new ClaudeCodeEngine();
-    case 'kimi-code':
+    case "kimi-code":
       return new KimiCodeEngine();
-    case 'opencode':
+    case "opencode":
       return new OpenCodeEngine();
-    case 'codex':
+    case "codex":
       return new CodexEngine();
+    case "gemini-code":
+      return new GeminiCodeEngine();
     default:
       throw new Error(`Unknown engine: ${String(name).slice(0, 64)}`);
   }

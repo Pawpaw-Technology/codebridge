@@ -8,6 +8,7 @@ import { ClaudeCodeEngine } from "../../src/engines/claude-code.js";
 import { KimiCodeEngine } from "../../src/engines/kimi-code.js";
 import { OpenCodeEngine } from "../../src/engines/opencode.js";
 import { CodexEngine } from "../../src/engines/codex.js";
+import { GeminiCodeEngine } from "../../src/engines/gemini-code.js";
 
 describe("resolveEngine — adversarial", () => {
   // -----------------------------------------------------------------------
@@ -125,6 +126,21 @@ describe("resolveEngine — adversarial", () => {
     expect(e1).toBeInstanceOf(KimiCodeEngine);
     expect(e2).toBeInstanceOf(KimiCodeEngine);
     expect(e1).not.toBe(e2);
+  });
+
+  it('each call to resolveEngine("gemini-code") returns a new GeminiCodeEngine instance', () => {
+    const e1 = resolveEngine("gemini-code");
+    const e2 = resolveEngine("gemini-code");
+    expect(e1).toBeInstanceOf(GeminiCodeEngine);
+    expect(e2).toBeInstanceOf(GeminiCodeEngine);
+    expect(e1).not.toBe(e2);
+  });
+
+  it("gemini-code engine has start, send, stop methods", () => {
+    const engine = resolveEngine("gemini-code");
+    expect(typeof engine.start).toBe("function");
+    expect(typeof engine.send).toBe("function");
+    expect(typeof engine.stop).toBe("function");
   });
 
   // -----------------------------------------------------------------------
